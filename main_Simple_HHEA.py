@@ -60,7 +60,7 @@ def normalize_adj(adj):
 
 
 # %%
-#TODO training ratio改这里
+#var training ratio
 train_alignments = load_alignments(DATA_PATH / 'sup_pairs')
 dev_alignments = load_alignments(DATA_PATH / 'ref_pairs')
 ent_pair_size = len(train_alignments) + len(dev_alignments)
@@ -76,7 +76,7 @@ print('Train/ Val: {}/ {}\n'.format(len(train_alignments), len(dev_alignments)))
 ## t_index => [unique head and tail, time index numbers]
 ## r_val ==> equal weight for the unique head and tail over all relations/timestamps
 
-#TODO batch size
+#var batch size
 
 batch_size = node_size
 # batch_size = BATCH_SIZE
@@ -137,8 +137,8 @@ def load_ent_time_matrix(file_path):
             if time_y < 1995:
                 old_time_id_list.append(line[0])
 
-    #这里代表年份
-    #2 (old) + [(2021-1995) + 1] * 13 (这里包括00月)
+
+    #2 (old) + [(2021-1995) + 1] * 13 (include month 00)
     ent_1_emb = np.zeros([ent_1_num, 1 + 27 * 13])
     ent_2_emb = np.zeros([ent_2_num, 1 + 27 * 13])
 
@@ -244,7 +244,7 @@ class Time2Vec(nn.Module):
 
 
 def get_train_set(batch_size=batch_size):
-    #这里改neg_num
+    #var neg_num
     negative_ratio = batch_size // len(train_alignments) + 1
     train_set = np.reshape(np.repeat(np.expand_dims(train_alignments, axis=0), axis=0, repeats=negative_ratio),
                            newshape=(-1, 2))
@@ -298,21 +298,20 @@ class Simple_HHEA(nn.Module):
         time_span_index = [i for i in range(time_span)]
         self.time_span_index = torch.tensor(time_span_index).to(self.device).unsqueeze(1).float()
         self.ent_dw_emb = torch.tensor(ent_dw_emb).to(self.device).float()
-
-    #后续如果需要batch_size的话改这里
+        
     def forward(self):
         time_span_feature = self.time2vec(self.time_span_index)#352 * 64
         # r_time_span_feature = time_span_feature.reshape(time_span_feature.shape[0], time_span_feature.shape[1], 1)
         # ent_time_dense = F.softmax(self.sigmoid(self.ent_time_emb), dim = 1)
         ent_time_feature = torch.mm(self.ent_time_dense , time_span_feature) / self.time_span
         '''
-        一层FC
+        one layer FC
         '''
         # ent_time_feature = self.fc_time(ent_time_feature)
         # ent_name_feature = self.fc_name(self.ent_name_emb)
         # ent_dw_feature = self.fc_dw(self.ent_dw_emb)
         '''
-        两层MLP
+        two layer MLP
         '''
         ent_time_feature = self.fc_time(self.fc_time_0(self.dropout(ent_time_feature)))
         ent_name_feature = self.fc_name(self.fc_name_0(self.dropout(self.ent_name_emb)))
@@ -331,7 +330,7 @@ class Simple_HHEA(nn.Module):
         # time_encoding = self.activation(torch.sparse.mm(time_indices.float(), times_sum_n))
 
         # return self.fc_final(torch.cat([ent_name_feature, ent_time_feature], 1))
-        #TODO这里决定是否有structure
+        #var structure
         if args.if_structure:
             # output_feature = self.dropout(torch.cat([ent_name_feature, ent_time_feature, ent_dw_feature], 1))
             output_feature = torch.cat([ent_name_feature, ent_time_feature, ent_dw_feature], 1)
@@ -353,7 +352,7 @@ kg2_name_emb = np.loadtxt(file_path + 'ent_2_emb_64.txt')
 ent_name_emb = np.array(kg1_name_emb.tolist() + kg2_name_emb.tolist())
 print("read entity time embedding shape:", np.array(ent_name_emb).shape)
 import random
-#来点噪音hhhh
+#mask entity name exp
 noise_ratio = args.noise_ratio
 sample_list = [i for i in range(64)]
 mask_id = random.sample(sample_list, int(64 * noise_ratio))
@@ -383,7 +382,7 @@ print("read entity deepwalk emb shape:", np.array(ent_transe_emb).shape)
 
 # ent_rel_emb = pickle.load(open(REL_EMB_PATH, "rb"))
 # print("read entity relation embedding shape:", np.array(ent_rel_emb).shape)
-#TODO 加rel emb
+#add rel emb
 ent_rel_emb = torch.zeros((26943, 498))
 
 
@@ -405,8 +404,8 @@ best_mrr = 0
 for i in tqdm(range(1500)):
     model.train()
     optimizer.zero_grad()
-    #TODO 后续需要改batch实验的话，改这里
-    #(r_index_sq, r_val_sq, t_index_sq) 指的是attention的几个要素
+    #batch exp
+
     features = model()
     comp = features[alignment_pairs]
     l, r, fl, fr = comp[:, 0, :], comp[:, 1, :], comp[:, 2, :], comp[:, 3, :]
