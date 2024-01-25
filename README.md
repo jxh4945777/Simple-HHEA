@@ -1,35 +1,93 @@
 # Simple-HHEA
-A simple but effective method (and two new proposed datasets: ICEWS-WIKI, ICEWS-YAGO) for entity alignment on highly heterogeneous knowledge graphs.
 
-- [Finished] Dataset
-- [Finished] Source Code
+The code and dataset for paper [***Toward Practical Entity Alignment Method Design: Insights from New Highly Heterogeneous Knowledge Graph Datasets***](https://arxiv.org/pdf/2307.07697.pdf) in The Web Conf 2024.
 
-The rise of knowledge graph (KG) applications underscores the importance of entity alignment (EA) across diverse KGs. While existing EA datasets provide some insights, their limited heterogeneity often falls short in capturing the complexities of practical KGs. These practical KGs, with their varying scales, structures, and sparse overlapping entities, present a unique set of challenges for EA.
 
-In light of these challenges, this repository introduces **Simple-HHEA**, a method tailored for aligning highly heterogeneous KGs (HHKGs).
 
-## Highlights
+## Environment
 
-- **Addressing Dataset Limitations**: We introduce two new HHKG datasets that are designed to emulate real-world EA scenarios, thereby bridging the gap between experimental and practical settings.
-  
-- **Extensive Evaluation**: Our extensive experiments on these datasets reveal that conventional message-passing and aggregation mechanisms often struggle to leverage valuable structure information in HHKGs. This observation is especially true for existing GNN-based EA methods.
+```
+Python
+Pytorch
+transformers
+SentencePiece
+scipy
+numpy
+pandas
+tqdm
+networkx
+gensim
+```
 
-- **Introducing Simple-HHEA**: In response to these findings, we present Simple-HHEA, an innovative approach that adeptly integrates entity name, structure, and temporal information. Unlike many complex methods, Simple-HHEA offers a straightforward yet powerful solution for navigating the intricacies of HHKGs.
 
-- **Future-Oriented Insights**: Our experiments suggest that the future of EA model design should prioritize adaptability and efficiency. Models should be able to handle varying information quality and effectively discern patterns across HHKGs.
 
-## Getting Started
+## How to Run
 
-1. **Dependencies**: Ensure you have the required libraries installed, including `numpy`, `pandas`, `torch`, `scipy`.
-2. **Execution**: Launch the main script with the desired parameters:
-    ```bash
-    python main_Simple_HHEA_bi_info.py --lang 'icews_wiki' --name_noise_ratio 0.0 --structure_noise_ratio 0.0 --if_structure True
-    ```
+The model runs in 3 steps:
 
-## Resources
+#### 1. Get the name embeddings
 
-The datasets and comprehensive source code for this project can be found [here](https://anonymous.4open.science/r/HHEA/).
+To get the name embeddings of entities, use:
 
-## Contribution & Feedback
+```bash
+python process_name_embedding.py --data DATASET
+```
 
-We welcome any contributions to the codebase and dataset. If you find any issues or have suggestions, please raise them in the GitHub repository. Your feedback is invaluable in refining and expanding Simple-HHEA.
+`DATASET` can be `icews_wiki`, `icews_yago` or any dataset you place in the directory [data](./data).
+
+#### 2. Get the structure embeddings
+
+We use [Fualign](https://github.com/showerage/fualign) to get the embeddings of entities by deepwalk. To get the structure embeddings, use: 
+
+```bash
+cd fualign
+python preprocess.py --l DATASET
+python longterm/main.py \
+	--input "data/DATASET/deepwalk.data" \
+	--output "data/DATASET/longterm.vec" \
+	--node2rel "data/DATASET/node2rel" \
+	--q 0.7
+python get_deep_emb.py --path "data/DATASET/"
+```
+
+`DATASET` is the same as the one in **Step 1**.
+
+#### 3. Run Simple-HHEA
+
+To run Simple-HHEA, use:
+
+```bash
+python main_SimpleHHEA.py \
+	--data DATASET \
+	--lr 0.01 \
+    --wd 0.001 \
+    --gamma 1.0 \
+    --epochs 1500
+```
+
+use `--add_noise` and `--noise_ratio` to control whether to add noise to the name embeddings and how much noise.
+
+use `--no_structure` to remove structure embeddings from model.
+
+use`--no_time` to remove time embeddings from model.
+
+
+
+Or you can use:
+
+```bash
+bash run_exp.sh
+```
+
+to directly run Simple-HHEA on dataset icews_wiki.
+
+# How to cite
+If you interested or inspired by this work, you can cite us by:
+```sh
+@article{jiang2023rethinking,
+  title={Rethinking GNN-based Entity Alignment on Heterogeneous Knowledge Graphs: New Datasets and A New Method},
+  author={Jiang, Xuhui and Xu, Chengjin and Shen, Yinghan and Su, Fenglong and Wang, Yuanzhuo and Sun, Fei and Li, Zixuan and Shen, Huawei},
+  journal={arXiv preprint arXiv:2304.03468},
+  year={2023}
+}
+```
